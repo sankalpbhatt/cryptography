@@ -3,7 +3,6 @@ package com.cryptography.enrypt;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.BadPaddingException;
@@ -13,7 +12,6 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import java.security.InvalidKeyException;
-import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -30,8 +28,6 @@ public class EncryptServiceImpl implements EncryptService{
 
     private static final String TRANSFORMATION = "AES/GCM/NoPadding";
 
-    @Value("${publicKey}")
-    private String pubKey;
     private SecretKey key;
     private Cipher encryptionCipher;
 
@@ -46,7 +42,7 @@ public class EncryptServiceImpl implements EncryptService{
     }
 
     @Override
-    public void testJwt() throws NoSuchAlgorithmException, InvalidKeySpecException {
+    public void testJwt() throws NoSuchAlgorithmException {
         String clientId = "your_client_id";
 
         // Generate key pair
