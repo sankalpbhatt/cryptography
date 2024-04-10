@@ -1,5 +1,9 @@
 package com.cryptography.enrypt;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.BadPaddingException;
@@ -9,13 +13,25 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import java.security.InvalidKeyException;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
 
 @Service
 public class EncryptServiceImpl implements EncryptService{
 
     private static final String TRANSFORMATION = "AES/GCM/NoPadding";
+
+    @Value("${publicKey}")
+    private String pubKey;
     private SecretKey key;
     private Cipher encryptionCipher;
 
@@ -27,6 +43,21 @@ public class EncryptServiceImpl implements EncryptService{
         initialiseEncryptionCypher();
         byte[] encryptedBytes = getEncryptedBytes(dataInBytes);
         return encode(encryptedBytes).getBytes();
+    }
+
+    @Override
+    public void testJwt() throws NoSuchAlgorithmException, InvalidKeySpecException {
+        String clientId = "your_client_id";
+
+        // Generate key pair
+        KeyPair keyPair = generateKeyPair(clientId);
+
+        // Generate JWT token using private key
+        String jwtToken = generateJWTToken(clientId, keyPair.getPrivate());
+        System.out.println("jwt token : "+ jwtToken);
+
+        // Decode JWT token using public key
+        decodeJWTToken(jwtToken, keyPair.getPublic());
     }
 
     private void initialiseEncryptionCypher() {
@@ -71,4 +102,34 @@ public class EncryptServiceImpl implements EncryptService{
         key = keyGenerator.generateKey();
     }
 
+    public static KeyPair generateKeyPair(String clientId) throws NoSuchAlgorithmException {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(2048, new SecureRandom(clientId.getBytes()));
+
+        KeyPair kp = keyPairGenerator.generateKeyPair();
+        byte[] privateKeyBytes = kp.getPrivate().getEncoded();
+        byte[] publicKeyBytes = kp.getPublic().getEncoded();
+
+        String privateKeyString = Base64.getEncoder().encodeToString(privateKeyBytes);
+        System.out.println(" privateKeyString : "+privateKeyString);
+        String publicKeyString = Base64.getEncoder().encodeToString(publicKeyBytes);
+        System.out.println(" publicKeyString : "+publicKeyString);
+        return kp;
+    }
+
+    public static String generateJWTToken(String clientId, PrivateKey privateKey) {
+        Algorithm algorithm = Algorithm.RSA256(null, (RSAPrivateKey) privateKey);
+        return JWT.create()
+                .withClaim("clientId", clientId)
+                .sign(algorithm);
+    }
+
+    public static void decodeJWTToken(String jwtToken, PublicKey publicKey) {
+        Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) publicKey, null);
+        DecodedJWT decodedJWT = JWT.require(algorithm)
+                .build()
+                .verify(jwtToken);
+        System.out.println("Decoded JWT:");
+        System.out.println("Client ID: " + decodedJWT.getClaim("clientId").asString());
+    }
 }
