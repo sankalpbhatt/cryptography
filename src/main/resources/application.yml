@@ -16,3 +16,5 @@ my:
   aMap:
     key: value
     key1: ${VALUE}
+
+clientId: client1
